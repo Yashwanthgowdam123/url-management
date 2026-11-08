@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block title %}Account · URL Inventory{% endblock %}
+{% block body %}
+<form class="card narrow" method="post"><h1>Change password</h1>
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Current password<input name="current" type="password" required autocomplete="current-password"></label>
+<label>New password (min 10 characters)<input name="new" type="password" required minlength="10" autocomplete="new-password"></label>
+<label>Confirm new password<input name="confirm" type="password" required minlength="10" autocomplete="new-password"></label>
+<button>Update password</button></form>
+{% endblock %}

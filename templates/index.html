@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="head">
+  <div><h1>Applications</h1><p>Central inventory of application URLs.</p></div>
+  {% if me %}<div class="actions">
+    <button class="ghost" data-open="importDialog">Import CSV</button>
+    <a class="btn ghost" href="{{ url_for('export_csv') }}">Export CSV</a>
+    <button data-open="add">＋ Add URL</button>
+  </div>{% endif %}
+</div>
+
+<div class="stats">
+  <a class="stat {{ 'on' if not env else '' }}" href="{{ url_for('index') }}"><span>Total</span><b>{{ grand_total }}</b></a>
+  <a class="stat {{ 'on' if env == 'prod' else '' }}" href="{{ url_for('index', env='prod') }}"><span>Production</span><b>{{ stats.get('prod', 0) }}</b></a>
+  <a class="stat {{ 'on' if env == 'staging' else '' }}" href="{{ url_for('index', env='staging') }}"><span>Staging</span><b>{{ stats.get('staging', 0) }}</b></a>
+  <a class="stat {{ 'on' if env == 'dev' else '' }}" href="{{ url_for('index', env='dev') }}"><span>Development</span><b>{{ stats.get('dev', 0) }}</b></a>
+</div>
+
+<form class="toolbar" method="get">
+  <input class="search" name="q" value="{{ q }}" placeholder="Search name, URL, tag or owner…" aria-label="Search">
+  <select name="category" data-autosubmit aria-label="Category"><option value="">All categories</option>{% for c in cats %}<option value="{{ c }}" {% if c == cat %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+  <select name="env" data-autosubmit aria-label="Environment"><option value="">All environments</option>{% for e in envs %}<option value="{{ e }}" {% if e == env %}selected{% endif %}>{{ e | capitalize }}</option>{% endfor %}</select>
+  <select name="sort" data-autosubmit aria-label="Sort"><option value="name" {% if sort == 'name' %}selected{% endif %}>Sort: Name</option><option value="newest" {% if sort == 'newest' %}selected{% endif %}>Sort: Newest</option><option value="updated" {% if sort == 'updated' %}selected{% endif %}>Sort: Recently updated</option><option value="category" {% if sort == 'category' %}selected{% endif %}>Sort: Category</option></select>
+  <button class="ghost">Search</button>
+</form>
+
+<p class="count">{{ total }} result{{ '' if total == 1 else 's' }}{% if qs %} · <a href="{{ url_for('index') }}">Clear filters</a>{% endif %}</p>
+
+<div class="tablecard">
+{% if rows %}
+<table>
+<thead><tr><th>Application</th><th>Environment</th><th class="hide-sm">Category</th><th class="hide-sm">Owner</th><th class="hide-sm">Updated</th>{% if me %}<th></th>{% endif %}</tr></thead>
+<tbody>
+{% for r in rows %}
+<tr>
+  <td><div class="app"><span class="av" data-hue="{{ r.name | hue }}">{{ r.name[:1] | upper }}</span>
+    <div class="t"><a class="nm" href="{{ r.url }}" target="_blank" rel="noopener noreferrer">{{ r.name }} ↗</a>
+    <div class="sub">{{ r.url }}</div>
+    {% if r.description %}<div class="desc">{{ r.description }}</div>{% endif %}
+    {% for t in r.tags | taglist %}<span class="tag">{{ t }}</span>{% endfor %}</div></div></td>
+  <td><span class="badge env-{{ r.environment }}">{{ r.environment }}</span></td>
+  <td class="cat hide-sm">{{ r.category or '—' }}</td>
+  <td class="cat hide-sm">{{ r.owner or '—' }}</td>
+  <td class="mut hide-sm">{{ r.updated_at[:10] }}</td>
+  {% if me %}<td><div class="rowact">
+    <button class="ghost sm" data-open="edit" data-action="{{ url_for('edit', app_id=r.id) }}" data-name="{{ r.name }}" data-url="{{ r.url }}" data-category="{{ r.category }}" data-environment="{{ r.environment }}" data-owner="{{ r.owner }}" data-tags="{{ r.tags }}" data-description="{{ r.description }}">Edit</button>
+    <form class="inline" method="post" action="{{ url_for('delete', app_id=r.id) }}" data-confirm="Delete {{ r.name }}? This cannot be undone."><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="danger sm">Delete</button></form>
+  </div></td>{% endif %}
+</tr>
+{% endfor %}
+</tbody></table>
+{% else %}
+<div class="empty"><h2>No applications found</h2><p>{% if qs %}Try changing or clearing your filters.{% elif me %}Add your first URL to get started.{% else %}Nothing has been added yet.{% endif %}</p></div>
+{% endif %}
+</div>
+
+{% if pages > 1 %}<div class="pager">
+{% if page > 1 %}<a href="{{ url_for('index', page=page-1, **qs) }}">‹ Prev</a>{% endif %}
+{% for n in range(1, pages + 1) %}{% if n == page %}<span class="cur">{{ n }}</span>{% elif n <= 3 or n > pages - 3 or (n - page) | abs <= 1 %}<a href="{{ url_for('index', page=n, **qs) }}">{{ n }}</a>{% elif n == 4 or n == pages - 3 %}<span>…</span>{% endif %}{% endfor %}
+{% if page < pages %}<a href="{{ url_for('index', page=page+1, **qs) }}">Next ›</a>{% endif %}</div>{% endif %}
+
+{% if me %}
+<datalist id="cats">{% for c in cats %}<option value="{{ c }}">{% endfor %}</datalist>
+<dialog id="entryDialog" data-add-url="{{ url_for('add') }}">
+<form method="post" action="{{ url_for('add') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="dh"><h2 data-title>Add URL</h2><button type="button" class="x" data-close aria-label="Close">×</button></div>
+<div class="db">
+<div class="grid2">
+  <label>Application name *<input name="name" required maxlength="100"></label>
+  <label>URL *<input name="url" type="url" required maxlength="2000" placeholder="https://"></label>
+  <label>Category<input name="category" list="cats" maxlength="50" placeholder="e.g. Monitoring"></label>
+  <label>Environment<select name="environment">{% for e in envs %}<option value="{{ e }}">{{ e | capitalize }}</option>{% endfor %}</select></label>
+  <label>Owner / team<input name="owner" maxlength="80"></label>
+  <label>Tags (comma separated)<input name="tags" maxlength="200" placeholder="metrics, internal"></label>
+</div>
+<label>Short description<textarea name="description" rows="3" maxlength="500"></textarea></label>
+</div>
+<div class="df"><button type="button" class="ghost" data-close>Cancel</button><button data-submit>Add URL</button></div>
+</form></dialog>
+
+<dialog id="importDialog">
+<form method="post" action="{{ url_for('import_csv') }}" enctype="multipart/form-data"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="dh"><h2>Import from CSV</h2><button type="button" class="x" data-close aria-label="Close">×</button></div>
+<div class="db"><p class="mut">Columns: <b>name</b>, <b>url</b> (required), description, category, environment, owner, tags. Duplicate URLs are skipped. Maximum 2000 rows.</p>
+<label>CSV file<input type="file" name="file" accept=".csv,text/csv" required></label></div>
+<div class="df"><button type="button" class="ghost" data-close>Cancel</button><button>Import</button></div>
+</form></dialog>
+{% endif %}
+{% endblock %}
