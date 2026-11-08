@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}URL Inventory{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head><body>
+<header class="top"><div class="wrap bar">
+<a class="brand" href="{{ url_for('index') }}">🔗 URL Inventory</a>
+<nav>
+{% if me %}<span class="mut">{{ me.username }} · {{ me.role }}</span>
+{% if me.role == 'admin' %}<a href="{{ url_for('users') }}">Users</a><a href="{{ url_for('audit_log') }}">Audit log</a>{% endif %}
+<a href="{{ url_for('account') }}">Account</a>
+<form class="inline" method="post" action="{{ url_for('logout') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="ghost">Sign out</button></form>
+{% else %}<a class="btn" href="{{ url_for('login') }}">Sign in</a>{% endif %}
+</nav></div></header>
+<main class="wrap">
+{% for c, m in get_flashed_messages(with_categories=true) %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}
+{% block body %}{% endblock %}
+</main>
+<footer class="wrap mut center">URL Inventory</footer>
+</body></html>

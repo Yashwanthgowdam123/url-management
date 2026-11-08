@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% macro fields(r=None) %}
+<div class="grid2">
+  <label>Application name<input name="name" required maxlength="100" value="{{ r.name if r else '' }}"></label>
+  <label>URL<input name="url" type="url" required maxlength="2000" placeholder="https://" value="{{ r.url if r else '' }}"></label>
+  <label>Category<input name="category" list="cats" maxlength="50" value="{{ r.category if r else '' }}"></label>
+  <label>Environment<select name="environment">{% for e in envs %}<option value="{{ e }}" {% if r and r.environment == e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></label>
+  <label>Owner / team<input name="owner" maxlength="80" value="{{ r.owner if r else '' }}"></label>
+  <label>Tags (comma separated)<input name="tags" maxlength="200" value="{{ r.tags if r else '' }}"></label>
+</div>
+<label>Short description<textarea name="description" rows="2" maxlength="500">{{ r.description if r else '' }}</textarea></label>
+{% endmacro %}
+{% block body %}
+<datalist id="cats">{% for c in cats %}<option value="{{ c }}">{% endfor %}</datalist>
+
+<div class="card"><details><summary>＋ Add a new URL</summary>
+<form method="post" action="{{ url_for('add') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+{{ fields() }}<button>Add URL</button></form></details></div>
+
+<form class="card filters" method="get">
+  <label>Search<input name="q" value="{{ q }}" placeholder="name, URL, tag, owner…"></label>
+  <label>Category<select name="category"><option value="">All</option>{% for c in cats %}<option value="{{ c }}" {% if c == cat %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></label>
+  <label>Environment<select name="env"><option value="">All</option>{% for e in envs %}<option value="{{ e }}" {% if e == env %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></label>
+  <label>Sort<select name="sort">{% for s in sorts %}<option value="{{ s }}" {% if s == sort %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
+  <button>Filter</button>
+</form>
+
+<div class="row"><p class="mut">{{ total }} entr{{ 'y' if total == 1 else 'ies' }}{% if qs %} · <a href="{{ url_for('index') }}">clear filters</a>{% endif %}</p>
+{% if me %}<div><a class="btn ghost" href="{{ url_for('export_csv') }}">Export CSV</a></div>{% endif %}</div>
+
+{% for r in rows %}
+<article class="card"><div class="row"><div class="grow">
+  <a class="name" href="{{ r.url }}" target="_blank" rel="noopener noreferrer">{{ r.name }}</a>
+  <span class="badge env-{{ r.environment }}">{{ r.environment }}</span>{% if r.category %}<span class="badge">{{ r.category }}</span>{% endif %}
+  <div class="mut url">{{ r.url }}</div>
+  {% if r.description %}<p>{{ r.description }}</p>{% endif %}
+  <div class="meta">{% for t in r.tags | taglist %}<span class="tag">#{{ t }}</span>{% endfor %}
+  {% if r.owner %}<span class="mut">Owner: {{ r.owner }}</span>{% endif %}<span class="mut">Updated {{ r.updated_at }} UTC</span></div>
+</div>
+{% if me %}<form method="post" action="{{ url_for('delete', app_id=r.id) }}" data-confirm="Delete {{ r.name }}?">
+<input type="hidden" name="_csrf" value="{{ csrf }}"><button class="danger">Delete</button></form>{% endif %}</div>
+{% if me %}<details><summary>Edit</summary>
+<form method="post" action="{{ url_for('edit', app_id=r.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+{{ fields(r) }}<button>Save changes</button></form></details>{% endif %}
+</article>
+{% else %}<div class="card mut center">No entries found.</div>{% endfor %}
+
+{% if pages > 1 %}<div class="pager">
+{% if page > 1 %}<a href="{{ url_for('index', page=page-1, **qs) }}">‹ Prev</a>{% endif %}
+{% for n in range(1, pages + 1) %}{% if n == page %}<span class="cur">{{ n }}</span>{% elif n <= 3 or n > pages - 3 or (n - page) | abs <= 1 %}<a href="{{ url_for('index', page=n, **qs) }}">{{ n }}</a>{% elif n == 4 or n == pages - 3 %}<span>…</span>{% endif %}{% endfor %}
+{% if page < pages %}<a href="{{ url_for('index', page=page+1, **qs) }}">Next ›</a>{% endif %}</div>{% endif %}
+
+{% if me %}<div class="card"><details><summary>Import from CSV</summary>
+<p class="mut">Columns: name, url (required), description, category, environment, owner, tags. Duplicate URLs are skipped. Max 2000 rows.</p>
+<form method="post" action="{{ url_for('import_csv') }}" enctype="multipart/form-data"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>CSV file<input type="file" name="file" accept=".csv,text/csv" required></label><button>Import</button></form></details></div>{% endif %}
+{% endblock %}

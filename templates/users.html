@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block title %}Users · URL Inventory{% endblock %}
+{% block body %}
+<h1>Users</h1>
+<div class="card"><table>
+<tr><th>Username</th><th>Role</th><th>Created</th><th>Reset password</th><th></th></tr>
+{% for u in rows %}<tr><td>{{ u.username }}</td><td>{{ u.role }}</td><td class="mut">{{ u.created_at }}</td>
+<td><form class="inline" method="post" action="{{ url_for('users_password', uid=u.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<input name="password" type="password" minlength="10" placeholder="new password" required autocomplete="new-password"> <button class="ghost">Reset</button></form></td>
+<td>{% if u.id != me.id %}<form class="inline" method="post" action="{{ url_for('users_delete', uid=u.id) }}" data-confirm="Delete user {{ u.username }}?">
+<input type="hidden" name="_csrf" value="{{ csrf }}"><button class="danger">Delete</button></form>{% endif %}</td></tr>{% endfor %}
+</table></div>
+<form class="card" method="post" action="{{ url_for('users_add') }}"><h1>Add user</h1><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="grid2"><label>Username<input name="username" required pattern="[A-Za-z0-9_.-]{3,32}"></label>
+<label>Role<select name="role"><option value="editor">editor (add, edit, delete, import/export)</option><option value="admin">admin (everything + users + audit)</option></select></label></div>
+<label>Password (min 10 characters)<input name="password" type="password" required minlength="10" autocomplete="new-password"></label>
+<button>Create user</button></form>
+{% endblock %}

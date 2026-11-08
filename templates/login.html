@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Sign in · URL Inventory{% endblock %}
+{% block body %}
+<form class="card narrow" method="post"><h1>Sign in</h1>
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Username<input name="username" required autofocus autocomplete="username"></label>
+<label>Password<input name="password" type="password" required autocomplete="current-password"></label>
+<button>Sign in</button> <a href="{{ url_for('index') }}">Back</a></form>
+{% endblock %}

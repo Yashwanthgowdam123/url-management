@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}Audit log · URL Inventory{% endblock %}
+{% block body %}
+<h1>Audit log <span class="mut">(latest 200)</span></h1>
+<div class="card"><table><tr><th>Time (UTC)</th><th>User</th><th>Action</th><th>Detail</th></tr>
+{% for r in rows %}<tr><td class="mut">{{ r.ts }}</td><td>{{ r.actor }}</td><td>{{ r.action }}</td><td>{{ r.detail }}</td></tr>
+{% else %}<tr><td colspan="4" class="mut">Nothing logged yet.</td></tr>{% endfor %}</table></div>
+{% endblock %}
